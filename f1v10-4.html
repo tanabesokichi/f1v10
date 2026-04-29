@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ULTIMATE 3D GRAND PRIX v10</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#87CEEB;touch-action:none;font-family:'Segoe UI',sans-serif}
+#ui{position:absolute;top:16px;left:16px;color:#fff;pointer-events:none;text-shadow:1px 1px 4px rgba(0,0,0,.8)}
+#speed-grp{font-size:58px;font-weight:900;font-style:italic;display:flex;align-items:baseline;line-height:1}
+#speed-unit{font-size:16px;margin-left:5px;font-style:normal;opacity:.85}
+#time-box{margin-top:6px;background:rgba(0,0,0,.45);border-radius:7px;padding:6px 12px;display:inline-block}
+#lap-time{font-family:'Courier New',monospace;font-size:21px;color:#00ff88}
+#best-time{font-family:'Courier New',monospace;font-size:13px;color:#ffd700;margin-top:2px}
+#lap-num{font-size:13px;color:#bbb;margin-top:1px}
+#gear{font-size:82px;color:#ffff00;font-weight:900;position:absolute;bottom:90px;right:36px;
+      text-shadow:3px 3px 0 #000;pointer-events:none}
+#lap-flash{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);
+           font-size:36px;font-weight:900;color:#ffd700;text-shadow:2px 2px 8px #000;
+           opacity:0;pointer-events:none;transition:opacity .35s;text-align:center;white-space:nowrap}
+#brake-light{position:absolute;bottom:0;left:0;right:0;height:5px;background:#ff2020;
+             opacity:0;pointer-events:none;transition:opacity .1s;box-shadow:0 0 18px 4px #ff2020}
+#help-btn{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;
+          background:rgba(0,0,0,.5);border:2px solid rgba(255,255,255,.6);color:#fff;
+          font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;
+          justify-content:center;z-index:100;user-select:none}
+#help-btn:hover{background:rgba(0,0,0,.75)}
+#help-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.78);z-index:200;
+              align-items:center;justify-content:center;overflow-y:auto}
+#help-overlay.show{display:flex}
+#help-panel{background:#14142a;border:1px solid rgba(255,255,255,.18);border-radius:14px;
+            padding:28px 36px;max-width:500px;width:92%;color:#fff;max-height:92vh;overflow-y:auto}
+#help-panel h2{margin:0 0 20px;font-size:20px;font-weight:700;color:#ffd700;text-align:center}
+.hs{margin-bottom:16px}.hs h3{font-size:11px;font-weight:600;color:#aaa;
+    text-transform:uppercase;letter-spacing:1px;margin:0 0 8px}
+.kr{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.kk{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:5px;
+    padding:3px 8px;font-size:12px;font-family:monospace;min-width:32px;text-align:center;color:#fff;white-space:nowrap}
+.kd{font-size:13px;color:#ccc}
+.tip{font-size:12px;color:#aaa;line-height:1.65;background:rgba(255,255,255,.05);border-radius:7px;padding:9px 12px}
+#close-btn{display:block;width:100%;margin-top:20px;padding:11px;background:#ffd700;
+           color:#000;font-size:14px;font-weight:700;border:none;border-radius:7px;cursor:pointer;letter-spacing:.5px}
+#close-btn:hover{background:#ffe44d}
+#touch-controls{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+                display:flex;gap:10px;pointer-events:auto;z-index:50}
+.tb{width:60px;height:60px;border-radius:50%;background:rgba(0,0,0,.4);
+    border:2px solid rgba(255,255,255,.5);color:#fff;font-size:22px;
+    display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tb:active{background:rgba(255,255,255,.2)}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div id="speed-grp"><span id="speed">0</span><span id="speed-unit">km/h</span></div>
+  <div id="time-box">
+    <div id="lap-time">00'00"000</div>
+    <div id="best-time">BEST --'--"---</div>
+    <div id="lap-num">LAP 0 / 3</div>
+  </div>
+</div>
+<div id="gear">N</div>
+<div id="lap-flash"></div>
+<div id="brake-light"></div>
+<div id="help-btn" onclick="toggleHelp()">?</div>
+
+<div id="help-overlay">
+  <div id="help-panel">
+    <h2>🏎 操作説明 v10</h2>
+    <div class="hs"><h3>走行</h3>
+      <div class="kr"><span class="kk">↑ / W</span><span class="kd">アクセル</span></div>
+      <div class="kr"><span class="kk">↓ / S</span><span class="kd">ブレーキ → 速度0以下でバック</span></div>
+      <div class="kr"><span class="kk">← / A</span><span class="kd">左ステアリング（低速ほど大きく曲がる）</span></div>
+      <div class="kr"><span class="kk">→ / D</span><span class="kd">右ステアリング</span></div>
+    </div>
+    <div class="hs"><h3>カメラ</h3>
+      <div class="kr"><span class="kk">右ドラッグ</span><span class="kd">視点を自由回転（ヨー＋ピッチ）</span></div>
+      <div class="kr"><span class="kk">ホイール</span><span class="kd">ズームイン／アウト</span></div>
+      <div class="kr"><span class="kk">ピンチ</span><span class="kd">2本指ズーム（タッチ）</span></div>
+      <div class="kr"><span class="kk">C</span><span class="kd">カメラリセット（真後ろに戻す）</span></div>
+    </div>
+    <div class="hs"><h3>その他</h3>
+      <div class="kr"><span class="kk">R</span><span class="kd">車をコース上にリセット</span></div>
+      <div class="kr"><span class="kk">H / ?</span><span class="kd">このヘルプ</span></div>
+    </div>
+    <div class="hs"><h3>ルール</h3>
+      <div class="tip">
+        スタート/ゴールゲートを前方向に通過するとラップ計測が始まります。<br>
+        3周完走でレース終了。コーン・ドラム缶は物理演算で弾けます。<br>
+        コースアウトしても走行可能。R キーで復帰。
+      </div>
+    </div>
+    <button id="close-btn" onclick="toggleHelp()">▶ スタート！</button>
+  </div>
+</div>
+
+<div id="touch-controls">
+  <div class="tb" id="btn-left">◀</div>
+  <div class="tb" id="btn-accel">▲</div>
+  <div class="tb" id="btn-brake">▼</div>
+  <div class="tb" id="btn-right">▶</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+if(typeof THREE==='undefined'){
+  document.body.innerHTML='<div style="color:red;padding:40px;font-size:20px">Three.js の読み込みに失敗しました。ネット接続を確認して再読み込みしてください。</div>';
+  throw new Error('THREE not loaded');
+}
+
+// ── ヘルプ ──
+function toggleHelp(){ document.getElementById('help-overlay').classList.toggle('show'); }
+toggleHelp();
+
+// ── シーン・レンダラー ──
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 350, 1800);
+
+const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.3, 2000);
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+// ── ライティング ──
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.9);
+sun.position.set(300, 500, 200);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.camera.left   = -600; sun.shadow.camera.right  = 600;
+sun.shadow.camera.top    =  600; sun.shadow.camera.bottom = -600;
+sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.02;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xb0d8ff, 0x2a5010, 0.85));
+scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+
+// ── Canvas テクスチャ生成ユーティリティ ──
+function makeCanvasTex(w, h, fn){
+  const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
+  const ctx = cv.getContext('2d'); fn(ctx,w,h);
+  const t = new THREE.CanvasTexture(cv); return t;
+}
+
+// アスファルト風テクスチャ
+const asphaltTex = makeCanvasTex(512, 512, (ctx,w,h)=>{
+  ctx.fillStyle='#282828'; ctx.fillRect(0,0,w,h);
+  for(let i=0;i<3000;i++){
+    const v = Math.random()*30-15;
+    ctx.fillStyle=`rgb(${40+v},${40+v},${40+v})`;
+    ctx.fillRect(Math.random()*w, Math.random()*h, Math.random()*3+1, Math.random()*2+1);
+  }
+});
+asphaltTex.wrapS=asphaltTex.wrapT=THREE.RepeatWrapping;
+asphaltTex.repeat.set(4,40);
+
+// 芝テクスチャ
+const grassTex = makeCanvasTex(256,256,(ctx,w,h)=>{
+  ctx.fillStyle='#2d7a2d'; ctx.fillRect(0,0,w,h);
+  for(let i=0;i<2000;i++){
+    const v=Math.random()*20-10;
+    ctx.fillStyle=`rgb(${30+v},${110+v},${30+v})`;
+    ctx.fillRect(Math.random()*w,Math.random()*h,2,4);
+  }
+});
+grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping;
+grassTex.repeat.set(80,80);
+
+// ── コース定義 ──
+const TRACK_W  = 22;
+const TRACK_SEGS = 360;
+const trackCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(   0, 0,    0),
+  new THREE.Vector3( 130, 0,   75),
+  new THREE.Vector3( 280, 0,  195),
+  new THREE.Vector3( 390, 0,   25),
+  new THREE.Vector3( 310, 0, -195),
+  new THREE.Vector3( 120, 0, -345),
+  new THREE.Vector3(-160, 0, -260),
+  new THREE.Vector3(-265, 0,  -65),
+  new THREE.Vector3(-105, 0,   95),
+], true, 'catmullrom', 0.5);
+
+// 路面ストリップ生成
+function buildStrip(hw, y, mat, flip){
+  const pos=[], idx=[], uv=[];
+  for(let i=0;i<=TRACK_SEGS;i++){
+    const t=i/TRACK_SEGS;
+    const pt=trackCurve.getPointAt(t);
+    const tn=trackCurve.getTangentAt(t);
+    const r=new THREE.Vector3(-tn.z,0,tn.x).normalize();
+    pos.push(pt.x-r.x*hw, y, pt.z-r.z*hw,
+             pt.x+r.x*hw, y, pt.z+r.z*hw);
+    uv.push(0,t*50, 1,t*50);
+    if(i<TRACK_SEGS){
+      const a=i*2,b=a+1,c=a+2,d=a+3;
+      flip? idx.push(a,c,b,b,c,d) : idx.push(a,b,c,b,d,c);
+    }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  g.setIndex(idx); g.computeVertexNormals();
+  const m=new THREE.Mesh(g,mat); m.receiveShadow=true; scene.add(m); return m;
+}
+
+// 路面
+buildStrip(TRACK_W/2, 0.04,
+  new THREE.MeshStandardMaterial({map:asphaltTex, roughness:0.88, metalness:0.04}));
+// 縁石（外側・白）
+buildStrip(TRACK_W/2+2.8, 0.02,
+  new THREE.MeshStandardMaterial({color:0xeeeeee, roughness:0.55}));
+// 縁石（内側・赤）
+buildStrip(TRACK_W/2, 0.06,
+  new THREE.MeshStandardMaterial({color:0xcc1111, roughness:0.55}), true);
+// センターライン
+buildStrip(0.3, 0.08,
+  new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.45}));
+
+// 地面
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(9000,9000),
+  new THREE.MeshStandardMaterial({map:grassTex, roughness:1.0})
+);
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+
+// ── スタート/ゴールゲート（コース位置 t=0、コース外縁に設置） ──
+const GATE_T  = 0.0;
+const GATE_POS= trackCurve.getPointAt(GATE_T);
+const GATE_TAN= trackCurve.getTangentAt(GATE_T).normalize();
+const GATE_RIGHT= new THREE.Vector3(-GATE_TAN.z,0,GATE_TAN.x).normalize();
+
+(function buildGate(){
+  const pillarMat = new THREE.MeshStandardMaterial({color:0xdd1111,metalness:0.5,roughness:0.35});
+  const beamMat   = new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.3,roughness:0.5});
+  const goldMat   = new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.85,roughness:0.15});
+  const boardMat  = new THREE.MeshStandardMaterial({color:0x111111,metalness:0.2,roughness:0.6});
+
+  // 支柱（コース外側へ）
+  [-1,1].forEach(sd=>{
+    const base = GATE_POS.clone().addScaledVector(GATE_RIGHT, sd*(TRACK_W/2+2.5));
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.65,13,12),pillarMat);
+    p.position.set(base.x,6.5,base.z); p.castShadow=true; p.receiveShadow=true; scene.add(p);
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(0.75,10,8),goldMat);
+    cap.position.set(base.x,13.4,base.z); cap.castShadow=true; scene.add(cap);
+  });
+
+  // 横梁（赤白交互 5本）
+  const beamSpan = TRACK_W+5;
+  for(let i=0;i<5;i++){
+    const mat = i%2===0? pillarMat : beamMat;
+    const bm=new THREE.Mesh(new THREE.BoxGeometry(beamSpan/5,0.85,0.85),mat);
+    // 梁をコース横方向（GATE_RIGHT）に沿って並べる
+    const offset = ((i-2)/5)*beamSpan;
+    const cx = GATE_POS.clone().addScaledVector(GATE_RIGHT, offset);
+    bm.position.set(cx.x,12,cx.z);
+    bm.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), GATE_RIGHT);
+    bm.castShadow=true; bm.receiveShadow=true; scene.add(bm);
+  }
+
+  // 看板
+  const sg=new THREE.Mesh(new THREE.BoxGeometry(TRACK_W+5,2.6,0.28),boardMat);
+  sg.position.set(GATE_POS.x,13.6,GATE_POS.z);
+  sg.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),GATE_TAN);
+  sg.castShadow=true; scene.add(sg);
+})();
+
+// ── 山・雲・岩（景観） ──
+for(let i=0;i<30;i++){
+  const h=70+Math.random()*140;
+  const cols=[0x1b5e20,0x33691e,0x4a7c59,0x2e7d32];
+  const m=new THREE.Mesh(
+    new THREE.ConeGeometry(30+Math.random()*75,h,6),
+    new THREE.MeshStandardMaterial({color:cols[i%cols.length],roughness:1})
+  );
+  const a=(i/30)*Math.PI*2;
+  m.position.set(Math.cos(a)*1150,h/2,Math.sin(a)*1150);
+  m.castShadow=true; m.receiveShadow=true; scene.add(m);
+}
+for(let i=0;i<22;i++){
+  const s=50+Math.random()*90;
+  const cm=new THREE.Mesh(
+    new THREE.SphereGeometry(s,8,6),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.72+Math.random()*0.2})
+  );
+  cm.position.set((Math.random()-.5)*2200,270+Math.random()*180,(Math.random()-.5)*2200);
+  cm.scale.set(1,0.42,1); scene.add(cm);
+}
+const rockMat=new THREE.MeshStandardMaterial({color:0x78909c,roughness:0.92,metalness:0.1});
+for(let i=0;i<18;i++){
+  const s=0.7+Math.random()*2.2;
+  const rm=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),rockMat);
+  const a=Math.random()*Math.PI*2, d=380+Math.random()*380;
+  rm.position.set(Math.cos(a)*d,s*0.4,Math.sin(a)*d);
+  rm.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+  rm.castShadow=true; rm.receiveShadow=true; scene.add(rm);
+}
+
+// ── 木（コース外縁）──
+for(let i=0;i<90;i++){
+  const t=i/90;
+  const pt=trackCurve.getPointAt(t);
+  const tn=trackCurve.getTangentAt(t);
+  const r=new THREE.Vector3(-tn.z,0,tn.x).normalize();
+  [1,-1].forEach(sd=>{
+    const spread=TRACK_W/2+12+Math.random()*30;
+    const base=pt.clone().addScaledVector(r,sd*spread);
+    const h=3+Math.random()*3.5;
+    const trunk=new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2,0.32,h,7),
+      new THREE.MeshStandardMaterial({color:0x5d4037,roughness:0.9})
+    );
+    trunk.position.set(base.x,h/2,base.z);
+    trunk.castShadow=true; trunk.receiveShadow=true; scene.add(trunk);
+    const lc=[0x2e7d32,0x388e3c,0x1b5e20,0x33691e][Math.floor(Math.random()*4)];
+    const leaves=new THREE.Mesh(
+      new THREE.SphereGeometry(1.8+Math.random()*1.8,7,6),
+      new THREE.MeshStandardMaterial({color:lc,roughness:1})
+    );
+    leaves.position.set(base.x,h+1.6+Math.random(),base.z);
+    leaves.castShadow=true; leaves.receiveShadow=true; scene.add(leaves);
+  });
+}
+
+// ── 観客スタンド（コース完全外側に配置） ──
+// コース最大幅 ≈ TRACK_W/2+3 ≈ 14m → スタンドはそこから更に外の距離に配置
+(function buildStands(){
+  const standMat=new THREE.MeshStandardMaterial({color:0x607d8b,roughness:0.75});
+  const seatColors=[0xe53935,0x1e88e5,0xfdd835,0x43a047,0xf4511e];
+
+  // コース上の4か所にスタンドを配置（コース外側）
+  [[0.15,1],[0.4,-1],[0.65,1],[0.85,-1]].forEach(([t,sd])=>{
+    const pt=trackCurve.getPointAt(t);
+    const tn=trackCurve.getTangentAt(t);
+    const r=new THREE.Vector3(-tn.z,0,tn.x).normalize();
+    // コース外縁から25m外
+    const standOrigin=pt.clone().addScaledVector(r,sd*(TRACK_W/2+25));
+
+    for(let row=0;row<6;row++){
+      const step=new THREE.Mesh(
+        new THREE.BoxGeometry(55,1.1,3.5),standMat
+      );
+      // 行をコース方向に沿わせつつ、コース外へ階段状にずらす
+      const rowOffset=r.clone().multiplyScalar(sd*(row*3.2));
+      step.position.set(
+        standOrigin.x+rowOffset.x,
+        row*2.0+0.55,
+        standOrigin.z+rowOffset.z
+      );
+      step.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),tn);
+      step.castShadow=true; step.receiveShadow=true; scene.add(step);
+
+      // 観客（小球）
+      for(let s=0;s<20;s++){
+        const aud=new THREE.Mesh(
+          new THREE.SphereGeometry(0.45,5,4),
+          new THREE.MeshStandardMaterial({color:seatColors[Math.floor(Math.random()*seatColors.length)]})
+        );
+        const along=tn.clone().multiplyScalar(-27+s*2.8);
+        aud.position.set(
+          standOrigin.x+rowOffset.x+along.x,
+          row*2.0+1.8,
+          standOrigin.z+rowOffset.z+along.z
+        );
+        aud.castShadow=true; scene.add(aud);
+      }
+    }
+  });
+})();
+
+// ── 物理オブジェクト管理 ──
+const physObjects=[];
+const GRAVITY=9.8, RESTITUTION=0.32, FRICTION_G=0.55;
+
+function makePO(mesh,px,py,pz,mass,radius){
+  // pos.y の初期値を radius にしておくことでメッシュが地表ぴったりに立つ
+  // （物理ループでは pos がそのままメッシュ座標 = オブジェクト中心）
+  const o={
+    mesh, mass, radius,
+    pos:new THREE.Vector3(px, radius, pz), // ← py 引数は無視して radius で初期化
+    vel:new THREE.Vector3(),
+    angVel:new THREE.Vector3(),
+    rot:new THREE.Quaternion(),
+    sleeping:false
+  };
+  physObjects.push(o); return o;
+}
+
+// コーン
+const coneMat   =new THREE.MeshStandardMaterial({color:0xff5500,roughness:0.65});
+const coneBand  =new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.55});
+const coneBase  =new THREE.MeshStandardMaterial({color:0xcc3300,roughness:0.8});
+function addCone(px,pz){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.75,10),coneMat);
+  body.position.y=0.38; body.castShadow=true; body.receiveShadow=true; g.add(body);
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.1,10),coneBand);
+  band.position.y=0.56; band.castShadow=true; g.add(band);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.30,0.07,10),coneBase);
+  base.position.y=0.035; base.castShadow=true; base.receiveShadow=true; g.add(base);
+  // 初期Y: makePO が radius=0.25 でセットするので同じ高さに
+  g.position.set(px, 0.25, pz);
+  scene.add(g);
+  makePO(g,px,0,pz,1.2,0.25);
+}
+
+// ドラム缶
+const drumMat  =new THREE.MeshStandardMaterial({color:0x1565c0,roughness:0.45,metalness:0.65});
+const drumBand =new THREE.MeshStandardMaterial({color:0xfff176,roughness:0.55,metalness:0.3});
+const drumTop  =new THREE.MeshStandardMaterial({color:0x0d47a1,metalness:0.75,roughness:0.25});
+function addDrum(px,pz){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,1.0,16),drumMat);
+  body.position.y=0.5; body.castShadow=true; body.receiveShadow=true; g.add(body);
+  [0.62,0.38].forEach(y=>{
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.1,16),drumBand);
+    b.position.y=y; b.castShadow=true; g.add(b);
+  });
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.055,16),drumTop);
+  top.position.y=1.03; top.castShadow=true; g.add(top);
+  // radius=0.5（ドラム缶の半高さ）で地面にぴったり
+  g.position.set(px, 0.5, pz);
+  scene.add(g);
+  makePO(g,px,0,pz,18,0.5);
+}
+
+// タイヤバリア
+const tireMat2=new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.92});
+function addTire(px,stackY,pz){
+  // stackY: 何段目か（0.55刻みで積む）
+  const radius=0.52;
+  const m=new THREE.Mesh(new THREE.TorusGeometry(0.52,0.23,8,16),tireMat2);
+  m.rotation.x=Math.PI/2;
+  m.position.set(px, stackY, pz); // 初期表示位置
+  m.castShadow=true; m.receiveShadow=true; scene.add(m);
+  // physics pos.y は radius に自動設定されるが、積み上げの場合はそのままにする
+  // → 積み上げタイヤは静止している想定なので sleeping=true で始める
+  const o=makePO(m,px,0,pz,45,radius);
+  // 初期位置を積み上げ高さに上書き（makePO後に補正）
+  o.pos.y=stackY;
+  m.position.y=stackY;
+  o.sleeping=true; // 静的配置
+}
+
+// コース外縁にコーン配置（コース外側にのみ）
+for(let i=0;i<32;i++){
+  const t=(i/32+0.02)%1;
+  const pt=trackCurve.getPointAt(t);
+  const tn=trackCurve.getTangentAt(t);
+  const r=new THREE.Vector3(-tn.z,0,tn.x).normalize();
+  const sd=i%2===0?1:-1;
+  // コース縁の少し外（±13m）に配置
+  const p=pt.clone().addScaledVector(r,sd*(TRACK_W/2+0.5));
+  addCone(p.x,p.z);
+}
+
+// ドラム缶・タイヤバリアをコース脇の特定コーナーに
+[[390,25],[310,-195],[120,-345],[-160,-260],[-265,-65]].forEach(([x,z])=>{
+  addDrum(x+8, z+4); addDrum(x-8, z-4);
+  // タイヤは1段目=0.52、2段目=1.07、3段目=1.62（直径1.04ずつ）
+  [0.52,1.07,1.62].forEach(sy=>{
+    addTire(x+6, sy, z);
+    addTire(x-6, sy, z);
+  });
+});
+
+// ── F1 カー（詳細モデル・タイヤ修正版） ──
+function createF1Car(bodyColor){
+  const car=new THREE.Group();
+  const bMat=new THREE.MeshStandardMaterial({color:bodyColor,metalness:0.72,roughness:0.22});
+  const blk =new THREE.MeshStandardMaterial({color:0x0d0d0d,roughness:0.5,metalness:0.35});
+  const slv =new THREE.MeshStandardMaterial({color:0xd0d0d0,metalness:0.88,roughness:0.12});
+  const crb =new THREE.MeshStandardMaterial({color:0x1a1a1a,metalness:0.45,roughness:0.3});
+  const yel =new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.5,roughness:0.3});
+  const red2=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xaa0000,emissiveIntensity:0.9});
+
+  function add(geo,mat,x,y,z,rx,ry,rz){
+    const m=new THREE.Mesh(geo,mat);
+    m.position.set(x,y,z);
+    if(rx||ry||rz) m.rotation.set(rx||0,ry||0,rz||0);
+    m.castShadow=true; m.receiveShadow=true; car.add(m); return m;
+  }
+
+  // ── ボディ本体 ──
+  add(new THREE.BoxGeometry(1.48,0.36,3.6),bMat, 0,0.37,0);
+  add(new THREE.BoxGeometry(1.18,0.20,2.4),bMat, 0,0.62,0.18);  // 上アーチ
+  // コクピット
+  add(new THREE.BoxGeometry(0.55,0.28,0.85),crb, 0,0.70,0.38);
+  // ロールバー
+  add(new THREE.CylinderGeometry(0.055,0.055,0.44,8),slv, 0,0.93,-0.08);
+  add(new THREE.BoxGeometry(0.3,0.20,0.22),blk, 0,0.86,-0.08); // ヘッドレスト
+  // ノーズ
+  const noseG=new THREE.ConeGeometry(0.26,2.0,8);
+  add(noseG,bMat, 0,0.33,2.5, Math.PI/2,0,0);
+
+  // ── フロントウィング ──
+  add(new THREE.BoxGeometry(2.45,0.052,0.52),crb, 0,0.15,2.06);      // 主翼
+  add(new THREE.BoxGeometry(2.15,0.038,0.28),crb, 0,0.22,1.90);      // フラップ
+  [-1.18,1.18].forEach(x=>add(new THREE.BoxGeometry(0.055,0.20,0.58),crb,x,0.20,2.06)); // 端板
+
+  // ── サイドポッド ──
+  [-0.80,0.80].forEach(x=>{
+    add(new THREE.BoxGeometry(0.40,0.34,1.75),bMat, x,0.35,-0.28);
+    add(new THREE.BoxGeometry(0.07,0.26,0.32),blk, x+(x>0?0.17:-0.17),0.35,0.52); // インレット
+  });
+
+  // ── リアボディ・エンジンカバー ──
+  add(new THREE.BoxGeometry(1.05,0.44,1.35),bMat, 0,0.54,-1.18);
+  add(new THREE.BoxGeometry(0.65,0.17,1.15),bMat, 0,0.77,-1.10);
+
+  // ── リアウィング ──
+  add(new THREE.BoxGeometry(1.92,0.062,0.55),crb, 0,1.07,-1.95);     // 主翼
+  add(new THREE.BoxGeometry(1.82,0.042,0.27),crb, 0,1.15,-1.78);     // フラップ
+  [-0.90,0.90].forEach(x=>add(new THREE.BoxGeometry(0.058,0.44,0.62),crb,x,0.89,-1.95)); // 端板
+  [-0.70,0.70].forEach(x=>add(new THREE.BoxGeometry(0.055,0.38,0.055),slv,x,0.72,-1.78)); // 支柱
+  add(new THREE.BoxGeometry(0.75,0.042,0.32),crb, 0,0.67,-1.72);     // ビーム翼
+
+  // ── ディフューザー ──
+  add(new THREE.BoxGeometry(1.35,0.11,0.65),crb, 0,0.11,-2.08);
+  // テールライト
+  add(new THREE.BoxGeometry(0.26,0.075,0.055),red2, 0,0.60,-2.16);
+
+  // ── サスペンションアーム（装飾） ──
+  const armMat=new THREE.MeshStandardMaterial({color:0x888888,metalness:0.72,roughness:0.28});
+  [[0.74,0.30,1.44],[0.74,0.30,-1.44],[-0.74,0.30,1.44],[-0.74,0.30,-1.44]].forEach(([x,y,z])=>{
+    const a=new THREE.Mesh(new THREE.CylinderGeometry(0.032,0.032,0.70,6),armMat);
+    a.rotation.z=Math.PI/2; a.position.set(x*0.52,y,z);
+    a.castShadow=true; car.add(a);
+  });
+
+  // ── タイヤ（修正版：リングなし・リムのみ1枚） ──
+  // タイヤGeom：円柱
+  const tireGeo=new THREE.CylinderGeometry(0.42,0.42,0.60,28);
+  const tireMat3=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.94,metalness:0.02});
+  // リムGeom：薄い円盤のみ（CylinderGeometry 厚さを薄く）
+  const rimGeo=new THREE.CylinderGeometry(0.24,0.24,0.02,20);
+  const rimMat=new THREE.MeshStandardMaterial({color:0xdddddd,metalness:0.92,roughness:0.08});
+  // リムスポーク用
+  const spokeGeo=new THREE.BoxGeometry(0.04,0.40,0.02);
+  const spokeMat=new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.85,roughness:0.12});
+
+  const tirePositions=[
+    {pos:[ 1.05,0.42, 1.44], front:true },
+    {pos:[-1.05,0.42, 1.44], front:true },
+    {pos:[ 1.05,0.42,-1.44], front:false},
+    {pos:[-1.05,0.42,-1.44], front:false},
+  ];
+  const steerGroups=[], spinGroups=[];
+
+  tirePositions.forEach(({pos,front})=>{
+    const steerGrp=new THREE.Group();
+    steerGrp.position.set(...pos);
+
+    const spinGrp=new THREE.Group();
+
+    // タイヤ本体
+    const tire=new THREE.Mesh(tireGeo,tireMat3);
+    tire.rotation.z=Math.PI/2; tire.castShadow=true; tire.receiveShadow=true;
+    spinGrp.add(tire);
+
+    // リム（薄い円盤を左右面に1枚ずつ）＋スポーク5本
+    [-0.29,0.29].forEach(ox=>{
+      // リム円盤：車軸(X)方向に向ける
+      const rim=new THREE.Mesh(rimGeo,rimMat);
+      rim.rotation.z=Math.PI/2;
+      rim.position.x=ox;
+      rim.castShadow=true; spinGrp.add(rim);
+
+      // スポーク5本：Groupで角度を回してからY方向のバーを入れる
+      for(let s=0;s<5;s++){
+        const sg2=new THREE.Group();
+        sg2.rotation.x=(s/5)*Math.PI*2; // ホイール面内で放射状
+        sg2.position.x=ox;
+        const sp=new THREE.Mesh(spokeGeo,spokeMat);
+        // spokeGeo=BoxGeometry(0.04,0.40,0.02): Y方向が長辺=放射方向
+        sp.castShadow=true;
+        sg2.add(sp);
+        spinGrp.add(sg2);
+      }
+    });
+
+    steerGrp.add(spinGrp);
+    car.add(steerGrp);
+    steerGroups.push({grp:steerGrp,front});
+    spinGroups.push(spinGrp);
+  });
+
+  return {mesh:car, steerGroups, spinGroups};
+}
+
+const player=createF1Car(0xcc0000);
+scene.add(player.mesh);
+
+// カメラ初期位置
+const _sp=trackCurve.getPointAt(0);
+const _st=trackCurve.getTangentAt(0).normalize();
+camera.position.set(_sp.x-_st.x*14,5,_sp.z-_st.z*14);
+camera.lookAt(_sp.x,1,_sp.z);
+
+// ── 入力 ──
+const input={up:false,down:false,left:false,right:false};
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowUp'  ||e.key==='w') input.up   =true;
+  if(e.key==='ArrowDown'||e.key==='s') input.down =true;
+  if(e.key==='ArrowLeft'||e.key==='a') input.left =true;
+  if(e.key==='ArrowRight'||e.key==='d') input.right=true;
+  if(e.key==='h'||e.key==='?') toggleHelp();
+  if(e.key==='c'||e.key==='C'){camYaw=Math.PI;camPitch=0.22;}
+  if(e.key==='r'||e.key==='R') resetCar();
+});
+window.addEventListener('keyup',e=>{
+  if(e.key==='ArrowUp'  ||e.key==='w') input.up   =false;
+  if(e.key==='ArrowDown'||e.key==='s') input.down =false;
+  if(e.key==='ArrowLeft'||e.key==='a') input.left =false;
+  if(e.key==='ArrowRight'||e.key==='d') input.right=false;
+});
+function bindBtn(id,key){
+  const el=document.getElementById(id);
+  el.addEventListener('touchstart',e=>{e.preventDefault();input[key]=true;},{passive:false});
+  el.addEventListener('touchend',  e=>{e.preventDefault();input[key]=false;});
+  el.addEventListener('mousedown', ()=>input[key]=true);
+  el.addEventListener('mouseup',   ()=>input[key]=false);
+  el.addEventListener('mouseleave',()=>input[key]=false);
+}
+bindBtn('btn-accel','up');bindBtn('btn-brake','down');
+bindBtn('btn-left','left');bindBtn('btn-right','right');
+
+// ── カメラ制御 ──
+let camYaw=Math.PI, camPitch=0.22, camDist=12;
+const CAM_DIST_MIN=3, CAM_DIST_MAX=30;
+const CAM_PITCH_MIN=-0.05, CAM_PITCH_MAX=1.15;
+
+window.addEventListener('wheel',e=>{
+  e.preventDefault();
+  camDist=Math.max(CAM_DIST_MIN,Math.min(CAM_DIST_MAX,camDist+e.deltaY*0.03));
+},{passive:false});
+
+let rightDrag=false,lastMX=0,lastMY=0;
+renderer.domElement.addEventListener('mousedown',e=>{
+  if(e.button===2){rightDrag=true;lastMX=e.clientX;lastMY=e.clientY;}
+});
+window.addEventListener('mouseup',e=>{if(e.button===2)rightDrag=false;});
+window.addEventListener('mousemove',e=>{
+  if(!rightDrag) return;
+  camYaw  -=(e.clientX-lastMX)*0.005;
+  camPitch =Math.max(CAM_PITCH_MIN,Math.min(CAM_PITCH_MAX,camPitch+(e.clientY-lastMY)*0.004));
+  lastMX=e.clientX;lastMY=e.clientY;
+});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+
+let lastPinch=null;
+window.addEventListener('touchstart',e=>{
+  if(e.touches.length===2)
+    lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                         e.touches[0].clientY-e.touches[1].clientY);
+},{passive:true});
+window.addEventListener('touchmove',e=>{
+  if(e.touches.length!==2||lastPinch===null) return;
+  const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                     e.touches[0].clientY-e.touches[1].clientY);
+  camDist=Math.max(CAM_DIST_MIN,Math.min(CAM_DIST_MAX,camDist-(d-lastPinch)*0.06));
+  lastPinch=d;
+},{passive:true});
+window.addEventListener('touchend',()=>lastPinch=null,{passive:true});
+
+// ── ギア ──
+const GEAR_KMH=[0,55,115,175,235,300,342];
+function getGear(k){
+  if(k<=0) return velocity<-0.5?'R':'N';
+  for(let g=1;g<GEAR_KMH.length;g++) if(k<GEAR_KMH[g]) return String(g);
+  return String(GEAR_KMH.length-1);
+}
+
+// ── 大気散乱スカイ（Rayleigh近似） ──
+(function buildSky(){
+  const skyGeo=new THREE.SphereGeometry(1500,24,12);
+  const skyMat=new THREE.ShaderMaterial({
+    side:THREE.BackSide,
+    uniforms:{sunDir:{value:new THREE.Vector3(0.5,0.85,0.3).normalize()}},
+    vertexShader:`
+      varying vec3 vDir;
+      void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`
+      varying vec3 vDir;
+      uniform vec3 sunDir;
+      void main(){
+        float t=max(vDir.y,0.);
+        // Rayleigh 近似：β ∝ 1/λ^4 → R>G>B散乱
+        vec3 zenith=vec3(0.08,0.26,0.72);
+        vec3 horizon=vec3(0.70,0.82,0.95);
+        vec3 sky=mix(horizon,zenith,pow(t,0.55));
+        // 太陽ハロー
+        float sd=max(dot(vDir,sunDir),0.);
+        vec3 sun=vec3(1.0,0.97,0.88)*pow(sd,180.)*2.5;
+        // 地平線ヘイズ
+        float haze=exp(-t*4.5)*0.35;
+        sky=mix(sky,vec3(0.92,0.88,0.82),haze);
+        gl_FragColor=vec4(sky+sun,1.);}`,
+    depthWrite:false
+  });
+  const skyMesh=new THREE.Mesh(skyGeo,skyMat);
+  skyMesh.renderOrder=-1;
+  scene.add(skyMesh);
+  // フォグ色も空の色に合わせる
+  scene.fog=new THREE.Fog(0xb0ccee,300,1800);
+  scene.background=null; // シェーダーが担当
+})();
+
+// ── 環境マップ（車体反射用 CubeCamera） ──
+const cubeRT=new THREE.WebGLCubeRenderTarget(128,{
+  format:THREE.RGBAFormat,
+  generateMipmaps:true,
+  minFilter:THREE.LinearMipmapLinearFilter
+});
+const cubeCamera=new THREE.CubeCamera(0.5,2000,cubeRT);
+scene.add(cubeCamera);
+
+// ── 車体マテリアルを MeshPhysicalMaterial + clearcoat に差し替え ──
+(function upgradeCarMat(){
+  player.mesh.traverse(obj=>{
+    if(!obj.isMesh) return;
+    const old=obj.material;
+    if(!old) return;
+    const c=old.color?old.color.clone():new THREE.Color(0xffffff);
+    const isBody=(c.r>0.5&&c.g<0.2&&c.b<0.2); // 赤ボディ
+    const isDark=(c.r<0.15&&c.g<0.15&&c.b<0.15);
+    if(isBody){
+      obj.material=new THREE.MeshPhysicalMaterial({
+        color:0xcc0000,metalness:0.5,roughness:0.18,
+        clearcoat:1.0,clearcoatRoughness:0.05,
+        envMap:cubeRT.texture,envMapIntensity:0.9
+      });
+    } else if(!isDark&&old.metalness>0.5){
+      obj.material=new THREE.MeshPhysicalMaterial({
+        color:c,metalness:0.9,roughness:0.08,
+        envMap:cubeRT.texture,envMapIntensity:1.2
+      });
+    }
+  });
+})();
+
+// ── コンタクトシャドウ（楕円パッチ） ──
+const shadowPatchMat=new THREE.MeshBasicMaterial({
+  color:0x000000,transparent:true,opacity:0.38,
+  depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2
+});
+const shadowPatch=new THREE.Mesh(
+  new THREE.CircleGeometry(1,24),shadowPatchMat
+);
+shadowPatch.rotation.x=-Math.PI/2;
+shadowPatch.position.y=0.055;
+shadowPatch.scale.set(2.6,1.2,1);
+scene.add(shadowPatch);
+
+// ── スキッドマーク ──
+const skidMarks=[];
+const skidMat=new THREE.MeshBasicMaterial({
+  color:0x080808,transparent:true,opacity:0.55,
+  depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1
+});
+function addSkid(x,z,yaw,alpha){
+  if(skidMarks.length>120) {
+    const old=skidMarks.shift();
+    scene.remove(old);old.geometry.dispose();
+  }
+  const g=new THREE.PlaneGeometry(0.35,1.8);
+  const m=new THREE.Mesh(g,skidMat.clone());
+  m.material.opacity=alpha*0.5;
+  m.rotation.x=-Math.PI/2; m.rotation.z=yaw;
+  m.position.set(x,0.056,z);
+  scene.add(m); skidMarks.push(m);
+}
+
+// ── 物理状態（改良版） ──
+const clock=new THREE.Clock();
+// 前後速度成分（ワールド）
+let vx=0, vz=0;          // ワールド速度 m/s
+let carX=_sp.x, carZ=_sp.z, carY=0.42;
+let carYaw=Math.atan2(_st.x,_st.z);
+let steerAngle=0;         // 前輪実切れ角
+let rollAngle=0;          // ロール角（表示用・慣性あり）
+let prevVelocity=0;       // 前フレームの速度
+
+// 車両パラメータ（F1ベース）
+const CAR={
+  mass:740,           // kg
+  wheelbase:2.88,     // m
+  hCoG:0.28,          // 重心高 m
+  Iz:900,             // ヨー慣性モーメント kg·m²
+  Cf:12000,           // フロントコーナリングスティフネス N/rad
+  Cr:14500,           // リアコーナリングスティフネス N/rad
+  Cd:0.52,            // 抗力係数×前面積
+  Cl:2.8,             // ダウンフォース係数
+  rhoA:0.6,           // ρ/2·A = 0.5*1.2*1.0
+  maxAccel:28,        // m/s²
+  maxBrake:55,        // m/s²
+  maxRevAccel:12,     // バック加速 m/s²
+  maxSpeed:95,        // m/s ≈ 342km/h
+  maxRevSpeed:14,
+  staticFriction:0.95,// タイヤ静止摩擦（乾燥路）
+};
+
+// ラップ
+const TOTAL_LAPS=3;
+let lapCount=0, lapStartTime=null, lapBestMs=null, prevGateSide=null;
+let skidTimer=0;
+
+function showFlash(text,color){
+  const f=document.getElementById('lap-flash');
+  f.textContent=text; f.style.color=color||'#ffd700';
+  f.style.opacity=1; clearTimeout(f._t);
+  f._t=setTimeout(()=>f.style.opacity=0,2500);
+}
+
+function resetCar(){
+  let minD=Infinity,bestT=0;
+  for(let i=0;i<300;i++){
+    const t=i/300, p=trackCurve.getPointAt(t);
+    const d=Math.hypot(carX-p.x,carZ-p.z);
+    if(d<minD){minD=d;bestT=t;}
+  }
+  const rp=trackCurve.getPointAt(bestT);
+  const rt=trackCurve.getTangentAt(bestT).normalize();
+  carX=rp.x; carZ=rp.z; carY=0.42;
+  vx=0; vz=0; steerAngle=0; rollAngle=0;
+  carYaw=Math.atan2(rt.x,rt.z);
+  camYaw=Math.PI; camPitch=0.22;
+}
+
+// ── 物理ループ（障害物） ──
+const CAR_R=2.2;
+function stepPhysics(dt){
+  const speed=Math.sqrt(vx*vx+vz*vz);
+  physObjects.forEach(o=>{
+    if(o.sleeping) return;
+    o.vel.y-=GRAVITY*dt;
+    o.pos.addScaledVector(o.vel,dt);
+    const aw=o.angVel.length();
+    if(aw>0.001){
+      const dq=new THREE.Quaternion().setFromAxisAngle(o.angVel.clone().normalize(),aw*dt);
+      o.rot.premultiply(dq);
+    }
+    if(o.pos.y<o.radius){
+      o.pos.y=o.radius;
+      if(o.vel.y<0){
+        o.vel.y*=-RESTITUTION;
+        o.vel.x*=1-FRICTION_G*dt*5;
+        o.vel.z*=1-FRICTION_G*dt*5;
+        o.angVel.multiplyScalar(1-FRICTION_G*dt*4);
+      }
+    }
+    if(o.vel.lengthSq()<0.0004&&o.pos.y<=o.radius+0.01){
+      o.vel.set(0,0,0); o.angVel.set(0,0,0); o.sleeping=true;
+    }
+    const dx=o.pos.x-carX, dz2=o.pos.z-carZ;
+    const dist2=dx*dx+dz2*dz2;
+    const minD=o.radius+CAR_R;
+    if(dist2<minD*minD&&dist2>0.001){
+      const dist=Math.sqrt(dist2);
+      const nx=dx/dist, nz=dz2/dist;
+      const overlap=minD-dist;
+      o.pos.x+=nx*overlap; o.pos.z+=nz*overlap;
+      const imp=(speed*1.6+1.5)*o.mass/(o.mass+600);
+      o.vel.x+=nx*imp; o.vel.y+=imp*0.4+0.3; o.vel.z+=nz*imp;
+      o.angVel.x+=(Math.random()-.5)*imp*0.9;
+      o.angVel.z+=(Math.random()-.5)*imp*0.9;
+      o.sleeping=false;
+    }
+    o.mesh.position.copy(o.pos);
+    o.mesh.quaternion.copy(o.rot);
+  });
+}
+
+// ── フォーマット ──
+function fmt(ms){
+  const m=Math.floor(ms/60000);
+  const s=Math.floor((ms%60000)/1000);
+  return `${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"${String(ms%1000).padStart(3,'0')}`;
+}
+
+// ── メインループ ──
+const lookTarget=new THREE.Vector3();
+let frameCount=0;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  frameCount++;
+
+  if(document.getElementById('help-overlay').classList.contains('show')){
+    renderer.render(scene,camera); return;
+  }
+
+  // ─── ダウンフォース・空力 ───
+  const speed=Math.sqrt(vx*vx+vz*vz); // m/s
+  const speedSq=speed*speed;
+  const downforce=CAR.rhoA*CAR.Cl*speedSq;  // N（F1ウィング）
+  const drag     =CAR.rhoA*CAR.Cd*speedSq;  // N
+
+  // 前後タイヤ荷重（静荷重 + 荷重移動 + ダウンフォース）
+  const accelLong=(speed-prevVelocity)/Math.max(dt,0.001); // m/s²
+  const Wf0=CAR.mass*9.8*0.47 + downforce*0.35; // フロント静荷重
+  const Wr0=CAR.mass*9.8*0.53 + downforce*0.65; // リア静荷重
+  const dWz=CAR.mass*Math.max(-50,Math.min(50,accelLong))*CAR.hCoG/CAR.wheelbase;
+  const Wf=Math.max(500, Wf0 - dWz);
+  const Wr=Math.max(500, Wr0 + dWz);
+
+  // ─── ステアリング（1次遅れフィルタ） ───
+  //   τ = 0.25s(入力あり) / 0.40s(入力なしセンター復帰)
+  //   応答 = 1 - exp(-dt/τ) で自然な遅れ感
+  const isBraking=input.down;
+  const absSpeed=speed;
+  const steerMax=0.28, steerMin=0.055;
+  const speedRatio=Math.min(absSpeed/CAR.maxSpeed,1);
+  const maxSteer=steerMax*(1-speedRatio)+steerMin*speedRatio;
+
+  const steerIn=(input.left?1:0)-(input.right?1:0);
+  const targetAngle=steerIn*maxSteer;
+  const tau = steerIn!==0 ? 0.25 : 0.42; // 時定数 [s]
+  const alpha_steer=1-Math.exp(-dt/tau);
+  steerAngle=steerAngle+(targetAngle-steerAngle)*alpha_steer;
+
+  // ─── タイヤ力モデル（線形タイヤ）───
+  // 車体ローカル座標での速度分解
+  const cosY=Math.cos(carYaw), sinY=Math.sin(carYaw);
+  // ワールド→ローカル（車前方=+Z相当なので注意）
+  const vLong=  vx*sinY + vz*cosY;  // 前後速度（正=前進）
+  const vLat = -vx*cosY + vz*sinY;  // 横速度（正=右）
+
+  // スリップ角（小角近似）
+  const EPS=0.5; // 除算保護
+  const absVL=Math.max(Math.abs(vLong),EPS);
+  // フロント
+  const slipF=steerAngle - Math.atan2(vLat + CAR.wheelbase*0.47*0 , absVL);
+  // リア（無操舵）
+  const slipR= -Math.atan2(vLat , absVL);
+
+  // タイヤ摩擦限界（Pacejka簡易: 線形域クランプ）
+  const muF=CAR.staticFriction*(Wf/(CAR.mass*9.8*0.47));
+  const muR=CAR.staticFriction*(Wr/(CAR.mass*9.8*0.53));
+
+  // 横力（N）
+  const FyFraw=CAR.Cf*slipF;
+  const FyRraw=CAR.Cr*slipR;
+  // 摩擦円制限
+  const FyFmax=muF*Wf;
+  const FyRmax=muR*Wr;
+  const FyF=Math.max(-FyFmax,Math.min(FyFmax,FyFraw));
+  const FyR=Math.max(-FyRmax,Math.min(FyRmax,FyRraw));
+
+  // ヨーモーメント
+  const Mz=(FyF*CAR.wheelbase*0.47 - FyR*CAR.wheelbase*0.53)/CAR.Iz;
+
+  // ─── 縦力（アクセル・ブレーキ） ───
+  let Fx=0;
+  if(input.up){
+    Fx=CAR.mass*CAR.maxAccel;
+  } else if(isBraking){
+    if(vLong>0.3)       Fx=-CAR.mass*CAR.maxBrake;
+    else                Fx=-CAR.mass*CAR.maxRevAccel; // バック
+  } else {
+    // エンジンブレーキ + 空気抵抗
+    Fx=-Math.sign(vLong)*Math.min(CAR.mass*8, drag);
+  }
+  // 速度制限
+  if(vLong> CAR.maxSpeed&&Fx>0) Fx=0;
+  if(vLong<-CAR.maxRevSpeed&&Fx<0) Fx=0;
+  // ドラッグ（常時）
+  Fx -= Math.sign(vLong)*drag*0.6;
+
+  // ─── 運動方程式（ローカル→ワールド） ───
+  // ローカル加速度
+  const axL=(Fx)/CAR.mass;
+  const ayL=(FyF+FyR)/CAR.mass;
+  // ヨー更新
+  carYaw+=Mz*dt;
+  // ローカル速度更新
+  let vLongNew=vLong+axL*dt;
+  let vLatNew =vLat +ayL*dt;
+  // タイヤ横摩擦で横速度減衰（グリップ限界内）
+  const latFric=0.92;
+  vLatNew*=Math.pow(latFric,dt*60);
+
+  // ローカル→ワールド
+  const cosY2=Math.cos(carYaw),sinY2=Math.sin(carYaw);
+  vx=vLongNew*sinY2 - vLatNew*cosY2;
+  vz=vLongNew*cosY2 + vLatNew*sinY2;
+
+  // 位置更新
+  carX+=vx*dt; carZ+=vz*dt;
+
+  // スリップ量（スキッド判定）
+  const slipMag=Math.abs(slipF)+Math.abs(slipR);
+  const isSkidding=slipMag>0.08&&speed>5;
+
+  // スキッドタイヤ音エフェクト（スキッドマーク）
+  skidTimer+=dt;
+  if(isSkidding&&skidTimer>0.12){
+    skidTimer=0;
+    const rightDir=new THREE.Vector3(-sinY2,0,cosY2);
+    [-1.05,1.05].forEach(sx=>{
+      const rx=carX+rightDir.x*sx-sinY2*1.44;
+      const rz=carZ+rightDir.z*sx-cosY2*1.44;
+      addSkid(rx,rz,carYaw,Math.min(slipMag*2,1));
+    });
+  }
+
+  prevVelocity=vLong;
+
+  // ─── ブレーキランプ ───
+  document.getElementById('brake-light').style.opacity=
+    (isBraking&&vLong>0.5)?'1':'0';
+
+  // ─── 車体姿勢 ───
+  const tangent=new THREE.Vector3(sinY2,0,cosY2);
+  const carPos3=new THREE.Vector3(carX,carY,carZ);
+  player.mesh.position.copy(carPos3);
+
+  // ロール：横 G から計算、ローパスで遅延（時定数0.18s）
+  const latG=ayL/9.8;
+  const targetRoll=-latG*0.065;
+  const tauRoll=0.18;
+  rollAngle=rollAngle+(targetRoll-rollAngle)*(1-Math.exp(-dt/tauRoll));
+
+  const qLook=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),tangent);
+  const qRoll=new THREE.Quaternion().setFromAxisAngle(tangent,rollAngle);
+  player.mesh.quaternion.copy(qRoll).multiply(qLook);
+
+  // ─── タイヤスピン ───
+  const spinD=vLong*0.5*dt;
+  player.spinGroups.forEach(sg=>sg.rotation.x+=spinD);
+  player.steerGroups.forEach(({grp,front})=>{ if(front) grp.rotation.y=steerAngle; });
+
+  // ─── コンタクトシャドウパッチ ───
+  shadowPatch.position.set(carX,0.056,carZ);
+  shadowPatch.rotation.z=carYaw;
+  // 速度が上がると少し薄くなる（ダウンフォースで接地面は増えるが距離演出）
+  shadowPatchMat.opacity=0.38-speed*0.002;
+
+  // ─── 環境マップ更新（20フレームに1回）───
+  if(frameCount%20===0){
+    player.mesh.visible=false;
+    cubeCamera.position.copy(carPos3).add(new THREE.Vector3(0,0.6,0));
+    cubeCamera.update(renderer,scene);
+    player.mesh.visible=true;
+  }
+
+  // ─── 物理オブジェクト ───
+  stepPhysics(dt);
+
+  // ─── ラップ計測 ───
+  const toGate=new THREE.Vector3(carX-GATE_POS.x,0,carZ-GATE_POS.z);
+  const gSide =toGate.dot(GATE_TAN);
+  const gLat  =Math.abs(toGate.dot(GATE_RIGHT));
+  if(prevGateSide!==null && gLat<TRACK_W/2+4){
+    if(prevGateSide<0&&gSide>=0&&vLong>0){
+      if(lapCount===0&&lapStartTime===null){
+        lapStartTime=performance.now();
+        showFlash('GO！','#00ff88');
+      } else if(lapStartTime!==null){
+        const lapMs=Math.round(performance.now()-lapStartTime);
+        if(lapBestMs===null||lapMs<lapBestMs) lapBestMs=lapMs;
+        lapCount++;
+        lapStartTime=performance.now();
+        if(lapCount>=TOTAL_LAPS) showFlash(`🏁 FINISH!  BEST ${fmt(lapBestMs)}`,'#00ff88');
+        else showFlash(`LAP ${lapCount}  ${fmt(lapMs)}`,'#ffd700');
+      }
+    }
+  }
+  prevGateSide=gSide;
+
+  // ─── UI ───
+  const speedKmh=Math.floor(Math.abs(vLong)*3.6);
+  document.getElementById('speed').innerText=speedKmh;
+  document.getElementById('gear').innerText=getGear(speedKmh);
+
+  const elapsedMs=lapStartTime?Math.round(performance.now()-lapStartTime):0;
+  document.getElementById('lap-time').innerText=fmt(elapsedMs);
+  document.getElementById('best-time').innerText=lapBestMs!==null?`BEST ${fmt(lapBestMs)}`:'BEST --\'--"---';
+  document.getElementById('lap-num').innerText=lapCount>=TOTAL_LAPS?'FINISH！':`LAP ${lapCount+1} / ${TOTAL_LAPS}`;
+
+  // ─── カメラ ───
+  // FOV速度連動でスピード感
+  const targetFov=65+speed*0.06;
+  camera.fov=THREE.MathUtils.lerp(camera.fov,targetFov,0.06);
+  camera.updateProjectionMatrix();
+
+  const absYaw=carYaw+camYaw;
+  const tx=carX+Math.sin(absYaw)*Math.cos(camPitch)*camDist;
+  const ty=carY +Math.sin(camPitch)*camDist+1.2;
+  const tz=carZ +Math.cos(absYaw)*Math.cos(camPitch)*camDist;
+  camera.position.lerp(new THREE.Vector3(tx,ty,tz),0.18);
+
+  const lx=carX+tangent.x*3.5, lz=carZ+tangent.z*3.5;
+  lookTarget.lerp(new THREE.Vector3(lx,carY+0.9,lz),0.20);
+  camera.lookAt(lookTarget);
+
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>
